@@ -1,17 +1,9 @@
 pipeline {
     agent any
-    tools {
-        maven 'maven'  // Ensure this matches the installed version in Jenkins
-    }
     stages {
-        stage('Clone Repository') {
+        stage('Build') { 
             steps {
-                git branch: 'master', url: 'https://github.com/clouddevopstrainer/simple-java-maven-app.git'
-            }
-        }
-        stage('Build') {
-            steps {
-                sh 'mvn -B -DskipTests clean package'
+                sh 'mvn -B -DskipTests clean package' 
             }
         }
     }
