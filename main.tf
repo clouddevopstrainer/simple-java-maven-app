@@ -1,32 +1,45 @@
+terraform {
+  required_providers {
+    aws = {
+      source  = "hashicorp/aws"
+      version = "~> 4.0"
+    }
+  }
+}
+
 provider "aws" {
-  region = "ap-south-1" # Replace with your desired AWS region
+  region     = "us-east-1"
+  access_key = "AKIA5V6I64AJTIYBKEPC"
+  secret_key = "rPdOV0G14pdTMkWhqVCOIJyiP+r3EJWXGIFgagOR"
 }
 
-# Create VPC
-resource "aws_vpc" "main" {
-  cidr_block = "10.0.0.0/16"
+// To Generate Private Key
+resource "tls_private_key" "rsa_4096" {
+  algorithm = "RSA"
+  rsa_bits  = 4096
 }
 
-# Create subnet
-resource "aws_subnet" "main" {
-  vpc_id                  = aws_vpc.main.id
-  cidr_block              = "10.0.1.0/24"
-  availability_zone       = "ap-south-1a" # Change as needed
-  map_public_ip_on_launch = true
+variable "key_name" {
+  description = "Name of the SSH key pair"
 }
 
-# Create an internet gateway
-resource "aws_internet_gateway" "main" {
-  vpc_id = aws_vpc.main.id
+// Create Key Pair for Connecting EC2 via SSH
+resource "aws_key_pair" "key_pair" {
+  key_name   = var.key_name
+  public_key = tls_private_key.rsa_4096.public_key_openssh
+}
+
+// Save PEM file locally
+resource "local_file" "private_key" {
+  content  = tls_private_key.rsa_4096.private_key_pem
+  filename = var.key_name
 }
 
 # Create a security group
-resource "aws_security_group" "sg" {
-  name        = "allow_ssh_http_https"
-  description = "Allow inbound SSH, HTTP, HTTPS, and port 8080"
-  vpc_id      = aws_vpc.main.id
+resource "aws_security_group" "sg_ec2" {
+  name        = "sg_ec2"
+  description = "Security group for EC2"
 
-  # Allow inbound SSH (port 22), HTTP (port 80), HTTPS (port 443), and port 8080
   ingress {
     from_port   = 22
     to_port     = 22
@@ -55,7 +68,6 @@ resource "aws_security_group" "sg" {
     cidr_blocks = ["0.0.0.0/0"]
   }
 
-  # Allow outbound traffic (default behavior)
   egress {
     from_port   = 0
     to_port     = 0
@@ -64,26 +76,18 @@ resource "aws_security_group" "sg" {
   }
 }
 
-# Create EC2 key pair
-resource "aws_key_pair" "keypair" {
-  key_name   = "ubuntu-key" # Choose a name for your keypair
-  public_key = file("~/.ssh/id_rsa.pub") # Ensure your public key is at this location
-}
-
-# Create an EC2 instance
-resource "aws_instance" "ubuntu_instance" {
-  ami           = "ami-023a307f3d27ea427" # Ubuntu 22.04 AMI in the region
-  instance_type = "t2.micro" # Choose an instance type
-  key_name      = aws_key_pair.keypair.key_name
-  subnet_id     = aws_subnet.main.id
-  security_groups = [aws_security_group.sg.name]
-  associate_public_ip_address = true
+resource "aws_instance" "public_instance" {
+  ami                    = "ami-0e1bed4f06a3b463d"
+  instance_type          = "t2.micro"
+  key_name               = aws_key_pair.key_pair.key_name
+  vpc_security_group_ids = [aws_security_group.sg_ec2.id]
 
   tags = {
-    Name = "Ubuntu22-EC2-Instance"
+    Name = "public_instance"
   }
-}
 
-output "instance_public_ip" {
-  value = aws_instance.ubuntu_instance.public_ip
+  root_block_device {
+    volume_size = 30
+    volume_type = "gp2"
+  }
 }
