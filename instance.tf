@@ -1,5 +1,5 @@
 resource "aws_instance" "public_instance" {
-  ami                    = "ami-0c3b809fcf2445b6a"  
+  ami                    = "ami-068da067c3c4ef0d3"  
   instance_type          = "t2.micro"
   key_name               = aws_key_pair.key_pair.key_name
   vpc_security_group_ids = [aws_security_group.sg_ec2.id]
