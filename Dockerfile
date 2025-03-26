@@ -1,4 +1,5 @@
-FROM openjdk:11
+FROM openjdk:17-jdk-slim
 WORKDIR /app
-COPY target/my-app-1.0-SNAPSHOT.jar app.jar
-CMD ["java", "-jar", "app.jar"]
+COPY target/my-java-app.jar app.jar
+EXPOSE 8081
+ENTRYPOINT ["java", "-jar", "app.jar", "--server.port=8081"]
