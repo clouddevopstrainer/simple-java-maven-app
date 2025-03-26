@@ -1,5 +1,5 @@
 resource "aws_security_group" "sg_ec2" {
-  name        = "sg_ec2_${random_string.suffix.result}"  # Append random suffix
+  name        = "sg_ec2"  # Append random suffix
   description = "Security group for EC2"
 
   # Allow SSH
