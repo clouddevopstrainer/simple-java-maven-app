@@ -1,27 +1,14 @@
-# Use an official OpenJDK base image
-FROM maven:3.9.6-eclipse-temurin-17 AS build
+# Step 1: Build the app using Maven
+FROM maven:3.8.1-jdk-11 as builder
 
-# Set the working directory inside the container
 WORKDIR /app
+COPY . /app
+RUN mvn clean install
 
-# Copy the application source code into the container
-COPY . .
+# Step 2: Run the app in a lightweight container
+FROM openjdk:11-jre-slim
 
-# Build the application using Maven
-RUN mvn -B -DskipTests clean package --no-transfer-progress
-
-# Use a minimal JDK runtime image for deployment
-FROM openjdk:17-jdk-slim
-
-# Set the working directory
 WORKDIR /app
+COPY --from=builder /app/target/*.jar /app/*.jar
 
-# Copy the built JAR file from the build stage
-COPY --from=build /app/target/*.jar app.jar
-
-# Expose the application port
-EXPOSE 8081
-
-# Run the application
-CMD ["java", "-jar", "app.jar"]
-
+CMD ["java", "-jar", "/app/*.jar"]
